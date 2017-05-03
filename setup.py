@@ -8,5 +8,5 @@ setup(name='tf_spectral',
       author_email='earneodo@ucsd.edu',
       license='GNU3',
       packages=['tf_spectral'],
-      install_requires=['numpy', 'tensorflow'],
+      install_requires=['numpy', 'tensorflow', 'semver'],
       zip_safe=False)

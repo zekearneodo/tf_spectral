@@ -1,5 +1,6 @@
 import tensorflow as tf
 import numpy as np
+import semver
 
 
 def real_fft(x, only_abs=True, logarithmic=False, window=None, device='/gpu:0'):
@@ -31,8 +32,10 @@ def real_fft(x, only_abs=True, logarithmic=False, window=None, device='/gpu:0'):
     else:
         real_x = tensor_x
 
-    tf_ver = tf_version()  # check version of tensorflow
-    if tf_ver < 6:  # tensroflow 1.0 and older didn't have rfft
+    tf_ver = tf.__version__  # check version of tensorflow
+    assert (semver.compare(tf_ver, '1.0.0') > 0), 'Tensorflow 1.0 or higher required'
+
+    if semver.compare(tf_ver, '1.1.0') > 0:  # tensroflow 1.0 and older didn't have rfft
         img_x = tf.Variable(np.zeros_like(x), dtype=tf.float32)
         complex_x = tf.complex(real_x, img_x)
         complex_y = tf.fft(complex_x)[:, :int(x.shape[-1] / 2)]
@@ -42,7 +45,7 @@ def real_fft(x, only_abs=True, logarithmic=False, window=None, device='/gpu:0'):
     if only_abs:
         amps_y = tf.abs(complex_y)
         if logarithmic:
-            log_10_inv = tf.constant(1./np.log(10.), dtype=tf.float32)
+            log_10_inv = tf.constant(1. / np.log(10.), dtype=tf.float32)
             log_amps = tf.log(amps_y)
             fft = tf.multiply(log_amps, log_10_inv)
         else:
@@ -52,16 +55,9 @@ def real_fft(x, only_abs=True, logarithmic=False, window=None, device='/gpu:0'):
 
     # initialize the model and run the session
     model = tf.global_variables_initializer()
+
     with tf.device(device):
         with tf.Session() as sess:
             sess.run(model)
             s = sess.run(fft)
     return s
-
-
-def tf_version():
-    tf_ver = tf.__version__
-    bin_tf_ver = ''.join([c for c in tf_ver if c not in '.'])
-    int_tf_ver = int(bin_tf_ver, 2)
-    # 1.0.x is 4-5
-    return int_tf_ver
