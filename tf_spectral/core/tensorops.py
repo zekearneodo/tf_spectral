@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 
 
-def real_fft(x, only_abs=True, logarithmic=False, window=None):
+def real_fft(x, only_abs=True, logarithmic=False, window=None, device='/gpu:0'):
     """
     Computes fft of a stack of time series.
     :param x: ndarray, shape=(n_series, n_samples)
@@ -13,6 +13,7 @@ def real_fft(x, only_abs=True, logarithmic=False, window=None):
             return in logarithmic scale; ignored if only_abs==False
     :param window: ndarray, shape=(n_samples, )
             boxing window (default none), np.array (n_samples)
+    :param device: str, device to use; ('/cpu:0', for instance).
     :return: ndarray, shape=(n_series, n_samples/2)
              (Whether n_samples is even or odd, the last element is the immediate before
              the nyquist frequency)
@@ -51,9 +52,10 @@ def real_fft(x, only_abs=True, logarithmic=False, window=None):
 
     # initialize the model and run the session
     model = tf.global_variables_initializer()
-    with tf.Session() as sess:
-        sess.run(model)
-        s = sess.run(fft)
+    with tf.device(device):
+        with tf.Session() as sess:
+            sess.run(model)
+            s = sess.run(fft)
     return s
 
 
