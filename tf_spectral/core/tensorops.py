@@ -14,7 +14,9 @@ def real_fft(x, only_abs=True, logarithmic=False, window=None):
     :param window: ndarray, shape=(n_samples, )
             boxing window (default none), np.array (n_samples)
     :return: ndarray, shape=(n_series, n_samples/2)
-            with fft computed for every row
+             (Whether n_samples is even or odd, the last element is the immediate before
+             the nyquist frequency)
+             with fft computed for every row
              dtype=np.float32 (if only_abs==True) or dtype=np.complex64 (if only_abs==False)
     """
     n_series, n_samples = x.shape
@@ -27,9 +29,14 @@ def real_fft(x, only_abs=True, logarithmic=False, window=None):
         real_x = tf.multiply(tensor_x, tensor_win)
     else:
         real_x = tensor_x
-    img_x = tf.Variable(np.zeros_like(x), dtype=tf.float32)
-    complex_x = tf.complex(real_x, img_x)
-    complex_y = tf.fft(complex_x)[:, :int(x.shape[-1] / 2)]
+
+    tf_ver = tf_version()  # check version of tensorflow
+    if tf_ver < 6:  # tensroflow 1.0 and older didn't have rfft
+        img_x = tf.Variable(np.zeros_like(x), dtype=tf.float32)
+        complex_x = tf.complex(real_x, img_x)
+        complex_y = tf.fft(complex_x)[:, :int(x.shape[-1] / 2)]
+    else:
+        complex_y = tf.spectral.rfft(real_x)[:, :int(x.shape[-1] / 2)]
 
     if only_abs:
         amps_y = tf.abs(complex_y)
@@ -42,8 +49,17 @@ def real_fft(x, only_abs=True, logarithmic=False, window=None):
     else:
         fft = complex_y
 
+    # initialize the model and run the session
     model = tf.global_variables_initializer()
     with tf.Session() as sess:
         sess.run(model)
         s = sess.run(fft)
     return s
+
+
+def tf_version():
+    tf_ver = tf.__version__
+    bin_tf_ver = ''.join([c for c in tf_ver if c not in '.'])
+    int_tf_ver = int(bin_tf_ver, 2)
+    # 1.0.x is 4-5
+    return int_tf_ver

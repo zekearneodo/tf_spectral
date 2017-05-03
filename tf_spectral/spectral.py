@@ -19,10 +19,13 @@ def spectrogram_tf(X, log=True, db_cut=65, fft_size=512, step_size=64, window=No
     specgram = real_fft(x, only_abs=True, logarithmic=log, window=window)
     max_specgram = np.max(specgram)
 
+    # do the cut_off. Values are amplitude, not power, hence db = -20*log(V/V_0)
     if log:
-        threshold = pow(10, max_specgram) * pow(10, -db_cut*0.05)
-        specgram[specgram < np.log10(threshold)] = np.log10(threshold)
-        #specgram /= specgram.max()  # volume normalize to max 1
+        # threshold = pow(10, max_specgram) * pow(10, -db_cut*0.05)
+        # specgram[specgram < np.log10(threshold)] = np.log10(threshold)
+        log10_threshhold = max_specgram - db_cut*0.05
+        specgram[specgram < log10_threshhold] = log10_threshhold
+        # specgram /= specgram.max()  # volume normalize to max 1
     else:
         threshold = max_specgram * pow(10, -db_cut*0.05)
         specgram[specgram < threshold] = threshold  # set anything less than the threshold as the threshold
